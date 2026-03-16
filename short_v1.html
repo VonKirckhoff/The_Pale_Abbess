@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pale Abbess (short)</title>
+    <style>
+        /* ========== BASICS ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            background: #000;
+        }
+
+        /* ========== LAYOUT ========== */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        #video-container {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ========== MEDIA LAYERS ========== */
+        .background-layer {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            transition: opacity 0.8s ease;
+        }
+
+        #background-video {
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        #background-video.active {
+            pointer-events: auto;
+            opacity: 1;
+        }
+
+        #background-image {
+            opacity: 1;
+        }
+
+        #background-image.hidden {
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        /* ========== STATIC NOISE OVERLAY ========== */
+        #static-noise {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0;
+            background-size: 200px 200px;
+            mix-blend-mode: screen;
+        }
+
+        #static-noise.active {
+            opacity: 1;
+        }
+
+        /* Verschillende noise types */
+        #static-noise.light {
+            animation: staticNoiseLight 0.1s steps(1) infinite;
+        }
+
+        #static-noise.medium {
+            animation: staticNoiseMedium 0.08s steps(1) infinite;
+        }
+
+        #static-noise.heavy {
+            animation: staticNoiseHeavy 0.05s steps(1) infinite;
+        }
+
+        #static-noise.scan {
+            animation: staticNoiseScan 2s linear infinite;
+        }
+
+        @keyframes staticNoiseLight {
+            0% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.15 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            25% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="4" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.15 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            50% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.15 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            75% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.92" numOctaves="4" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.15 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+        }
+
+        @keyframes staticNoiseMedium {
+            0% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="5" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.3 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            33% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="5" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.3 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            66% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.88" numOctaves="5" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.3 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+        }
+
+        @keyframes staticNoiseHeavy {
+            0% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="6" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.5 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            50% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="6" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.5 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+        }
+
+        @keyframes staticNoiseScan {
+            0% { 
+                background: linear-gradient(to bottom, 
+                    transparent 0%, 
+                    rgba(255,255,255,0.1) 48%, 
+                    rgba(255,255,255,0.3) 50%, 
+                    rgba(255,255,255,0.1) 52%, 
+                    transparent 100%);
+                background-size: 100% 40px;
+                background-position: 0 0;
+            }
+            100% { 
+                background-position: 0 100vh;
+            }
+        }
+
+        /* ========== OVERLAYS ========== */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, transparent 0%, transparent 70%, rgba(10,0,0,0.3) 100%);
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        #glitch-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        #glitch-overlay.glitching {
+            animation: glitchFlash 0.3s ease-in-out;
+        }
+
+        @keyframes glitchFlash {
+            0%, 100% { opacity: 0; }
+            10% { opacity: 1; background: #9b2626; }
+            20% { opacity: 0; }
+            30% { opacity: 1; background: #1e6c1e; }
+            40% { opacity: 0; }
+            50% { opacity: 1; background: #16168f; }
+            60% { opacity: 0; }
+            70% { opacity: 1; background: #811717; }
+            80% { opacity: 0; }
+        }
+
+        /* ========== TEKSTBOX ========== */
+        #text-box {
+            position: relative;
+            width: 450px;
+            height: 100%;
+            background: rgba(10, 0, 0, 0.95);
+            padding: 40px 30px;
+            z-index: 6;
+            border-left: 2px solid #8b0000;
+            box-shadow: -10px 0 40px rgba(139, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        #character-name {
+            color: #ff4444;
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+            letter-spacing: 2px;
+        }
+
+        #dialogue {
+            color: #ddd;
+            font-size: 20px;
+            line-height: 1.7;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+            font-style: italic;
+        }
+
+        #choices {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .choice-btn {
+            background: radial-gradient(
+                #000000,
+                #2d0101 80%,
+                #4a0000
+            );
+            color: #f8f8f7;
+            border: 2px solid #8b0000;
+            padding: 15px 25px;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            text-align: left;
+            box-shadow: 0 4px 8px rgba(139, 0, 0, 0.4);
+            font-family: 'Courier New', monospace;
+        }
+
+        .choice-btn:hover {
+            transform: translateX(10px);
+            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.7);
+            background: linear-gradient(135deg, #4a0000 0%, #6a0000 100%);
+            color: #fff;
+            border-color: #ff0000;
+        }
+
+        .choice-btn:active {
+            transform: translateX(10px) scale(0.98);
+        }
+
+        /* ========== TITLE SCREEN ========== */
+        #title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0000 0%, #1a0a0a 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.5s ease;
+        }
+
+        #title-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #game-title {
+            font-family: "Old English Text MT", "Engravers Old English", serif;
+            font-size: 100px;
+            color: #ff4444;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+            text-align: center;
+            letter-spacing: 5px;
+        }
+
+        #subtitle {
+            font-size: 24px;
+            color: #999;
+            margin-bottom: 60px;
+            font-style: italic;
+        }
+
+        #start-btn {
+            background: linear-gradient(135deg, #4a0000 0%, #8b0000 100%);
+            color: #fff;
+            border: 2px solid #ff0000;
+            padding: 20px 60px;
+            font-size: 22px;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(139, 0, 0, 0.6);
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+
+        #start-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 36px rgba(255, 0, 0, 0.8);
+            background: linear-gradient(135deg, #8b0000 0%, #aa0000 100%);
+        }
+
+        .fade-in {
+            animation: fadeIn 1.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .pulse {
+            animation: pulse 5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { text-shadow: 0 0 10px rgba(255, 68, 68, 0.8); }
+            50% { text-shadow: 0 0 33px rgba(255, 68, 68, 1), 0 0 99px rgba(255, 0, 0, 0.8); }
+        }
+
+        /* ========== AUDIO CONTROLS ========== */
+        #audio-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 20;
+        }
+
+        #mute-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            background: rgba(74, 0, 0, 0.6);
+            color: #ff9999;
+            border: 1px solid #8b0000;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #mute-btn:hover {
+            background: rgba(106, 0, 0, 0.9);
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(139, 0, 0, 0.6);
+        }
+
+        /* ================= CREDITS ================= */
+        #credits-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0000 0%, #1a0a0a 100%);
+            display: none;
+            z-index: 11;
+            overflow: hidden;
+        }
+
+        #credits-screen.show {
+            display: block;
+        }
+
+        #credits-content {
+            text-align: center;
+            color: #ddd;
+            padding: 60px 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            position: absolute;
+            width: 100%;
+            bottom: -150%;
+        }
+
+        #credits-content.scrolling {
+            animation: creditsScroll 30s linear forwards;
+        }
+
+        @keyframes creditsScroll {
+            0% { bottom: -150%;}
+            100% { bottom: 100%; }
+        }
+
+        .credits-title {
+            font-family: "Old English Text MT", "Engravers Old English", serif;
+            font-size: 48px;
+            color: #ff4444;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+            letter-spacing: 3px;
+        }
+
+        .credits-section {
+            margin: 30px 0;
+            padding: 20px;
+            border-top: 1px solid #4a0000;
+        }
+
+        .credits-section h3 {
+            font-family: "Old English Text MT", "Engravers Old English", serif;
+            font-size: 24px;
+            color: #ff9999;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .credits-section p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #ccc;
+            margin: 8px 0;
+        }
+
+        .credits-role {
+            color: #ff6666;
+            font-weight: bold;
+        }
+
+        #view-credits-btn {
+            background: linear-gradient(135deg, #2a0000 0%, #4a0000 100%);
+            color: #ff9999;
+            border: 2px solid #8b0000;
+            padding: 12px 20px;
+            font-size: 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+            width: 100%;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(139, 0, 0, 0.4);
+        }
+
+        #view-credits-btn:hover {
+            background: linear-gradient(135deg, #4a0000 0%, #6a0000 100%);
+            color: #fff;
+            border-color: #ff0000;
+            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.7);
+        }
+
+        #view-credits-btn.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== AUDIO ===== -->
+    <audio id="background-music" loop></audio>
+    <audio id="ambient-loop" loop></audio>
+    <audio id="ambient-once"></audio>
+
+    <!-- ===== AUDIO CONTROLS ===== -->
+    <div id="audio-controls">
+        <button id="mute-btn">🔊</button>
+    </div>
+
+    <!-- ===== GAME ===== -->
+    <div id="game-container">
+        <div id="video-container">
+            <img id="background-image" class="background-layer fade-in" src="" alt="Background">
+            <video id="background-video" class="background-layer" loop playsinline preload="auto">
+                <source src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <div id="static-noise"></div>
+            <div id="glitch-overlay"></div>
+            <div id="overlay"></div>
+        </div>
+
+        <div id="text-box">
+            <div id="character-name"></div>
+            <div id="dialogue"></div>
+            <div id="choices"></div>
+            <button id="view-credits-btn" class="hidden">
+                View Credits
+            </button>
+        </div>
+
+        <div id="title-screen">
+            <h1 id="game-title" class="pulse">The Pale Abbess</h1>
+            <div id="subtitle">"We have such sights to show you..."</div>
+            <button id="start-btn">BEGIN</button>
+        </div>
+    </div>
+
+    <div id="credits-screen">
+        <div id="credits-content">
+            <h2 class="credits-title">Credits</h2>
+
+            <div class="credits-section">
+                <h3>Cast</h3>
+                <p><span class="credits-role">The Pale Abbess</span> - Ethereal Voice Performance</p>
+                <p><span class="credits-role">Narrator</span> - Omniscient Presence</p>
+                <p><span class="credits-role">Ailuna</span> - Luna Van Kerckhove</p>
+                <p><span class="credits-role">Black Cat</span> - Tjuzi</p>
+                <p><span class="credits-role">Shopkeeper</span> - Warning Voice</p>
+            </div>
+
+            <div class="credits-section">
+                <h3>Visual Assets</h3>
+                <p>Photography - <span class="credits-role">Luna Van Kerckhove</span></p>
+                <p>Background Images & Video - <span class="credits-role">Patrick Van Kerckhove</span>
+            </div>
+
+            <div class="credits-section">
+                <h3>Music</h3>
+                <p><span class="credits-role">"Day of Chaos"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <p><span class="credits-role">"Come Play with Me"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <p><span class="credits-role">"SCP-x2x (Unseen Presence)"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <p><span class="credits-role">"This House"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <p><span class="credits-role">"SCP-x4x (Mind Leech)"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <p><span class="credits-role">"Final Count"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+            </div>
+
+            <div class="credits-section">
+                <h3>Soundbytes</h3>
+                <p><span class="credits-role">Rattling Chains</span> - Jeff Hottman (youtube)</p>
+                <p><span class="credits-role">Hail Mary (reversed)</span> - Katja (generated by Luvvoice)</p>
+            </div>
+
+            <div class="credits-section">
+                <h3>Inspired by</h3>
+                <p><span class="credits-role">Hellraiser</span> - Clive Barker</p>
+                <p>The Cenobite mythology and Lament Configuration</p>
+            </div>
+
+            <div class="credits-section">
+                <h3>Development</h3>
+                <p><span class="credits-role">Story & Design</span> - Patrick Van Kerckhove</p>
+                <p><span class="credits-role">Programming</span> - HTML5, CSS3, JavaScript</p>
+                <p><span class="credits-role">Engine</span> - Custom Visual Novel System</p>
+            </div>
+
+            <div class="credits-section">
+                <p style="font-style: italic; margin-top: 40px; font-size: 28px; color: #ff6666;">
+                    "The box. You opened it. We came."
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================================
+           STORY DATA
+           ========================================================= */
+        const story = {
+            start: {
+                mediaSequence: [
+                    { 
+                        type: 'video',
+                        src: 'video/Luna/start/shop_check_window.mp4',
+                        staticNoise: null
+                    },
+                    { 
+                        type: 'video',
+                        src: 'video/Luna/start/shop_check_window.mp4',
+                        staticNoise: null
+                    },
+                    // EndImage is nu gewoon het laatste item in de sequence
+                    { 
+                        type: 'image',
+                        src: 'image/Fase1/shop_check_window.png',
+                        duration: null,      // null = blijft staan (geen auto-advance)
+                        staticNoise: 'medium'
+                    },
+                ],
+                ambientAudio: {
+                    once: [
+                        {src: 'audio/chains_rattling.m4a', volume: 0.7, delay: 5000 },
+                        {src: 'audio/Wees_gegroet_Du_reversed.m4a', volume: 0.7, delay: 2000 }
+                    ],
+                    loop: [
+                        {src: 'audio/chains_rattling.m4a', volume: 0.3, delay: 0 },
+                        {src: 'audio/Wees_gegroet_Du_reversed.m4a', volume: 0.1, delay: 10000 }
+                    ],
+                },
+                music: 'audio/Day of Chaos.mp3',
+                character: 'Narrator',
+                text: 'The rain-slicked cobblestones reflect the dim gaslight...',
+                choices: [
+                    { text: 'Ga naar start', next: 'start' },
+                    { text: 'Next scene_walk away', next: 'walk_away_outside' },
+                    { text: 'Test media sequence', next: 'media_test' },
+                ]
+            },
+
+            walk_away_outside: {
+                mediaSequence: [
+                    { 
+                        type: 'image',
+                        src: 'image/Fase1/antiqueshop_vitrine.png',
+                        duration: null,
+                        staticNoise: 'medium'
+                        }
+                ],
+                ambientAudio: { //wees_gegroet blijft ook afspelen
+                    once: { src: 'audio/chains_rattling.m4a', volume: 0.5 },
+                    loop: { src: 'audio/breathing.m4a', volume: 1 }
+                },
+                character: 'Narrator',
+                text: 'You turn away from the shop, from whatever mysteries lie within. The rain continues to fall. Sometimes the greatest wisdom is knowing which doors should remain unopened. You walk into the night, your questions unanswered but your fate your own.',
+                isEnding: true,
+                choices: [
+                    { text: 'Ga naar start', next: 'start' },
+                ]
+            },
+
+            // MEDIA SEQUENCE - Combineert foto's en video's
+            media_test: {
+                mediaSequence: [
+                    // Start met een foto
+                    { 
+                        type: 'image',
+                        src: 'image/Fase1/shop_check_window.png', 
+                        duration: 2000,        // Hoelang foto getoond wordt (ms)
+                        staticNoise: 'heavy'   // Noise tijdens foto
+                    },
+                    // Dan een video
+                    { 
+                        type: 'video',
+                        src: 'video/Luna/start/shop_check_window.mp4',
+                        staticNoise: 'light'   // Optioneel: noise overlay tijdens video
+                    },
+                    // Nog een foto
+                    { 
+                        type: 'image',
+                        src: 'image/Fase1/antiqueshop_vitrine.png', 
+                        duration: 1500,
+                        staticNoise: 'scan'
+                    },
+                    // En nog een video
+                    { 
+                        type: 'video',
+                        src: 'video/Luna/start/shop_check_window.mp4',
+                        staticNoise: null      // Geen noise
+                    },
+                    // Foto's kunnen ook zonder auto-advance (duration: null)
+                    { 
+                        type: 'image',
+                        src: 'image/Fase1/shop_check_window.png', 
+                        duration: 3000,
+                        staticNoise: 'medium'
+                    },
+                    // Laatste item = eindbeeld (blijft staan met duration: null)
+                    { 
+                        type: 'image',
+                        src: 'image/Fase1/antiqueshop_vitrine.png',
+                        duration: null,        // null = blijft staan zonder auto-advance
+                        staticNoise: 'medium'
+                    },
+                ],
+                character: 'Narrator',
+                text: 'Reality flickers between moments frozen and moments in motion...',
+                choices: [
+                    { text: 'Terug naar start', next: 'start' },
+                ]
+            },
+        };
+
+        /* =========================================================
+           DOM REFERENCES
+           ========================================================= */
+        const bgImage = document.getElementById('background-image');
+        const bgVideo = document.getElementById('background-video');
+        const staticNoise = document.getElementById('static-noise');
+        const glitchOverlay = document.getElementById('glitch-overlay');
+        const charName = document.getElementById('character-name');
+        const dialogue = document.getElementById('dialogue');
+        const choicesDiv = document.getElementById('choices');
+        const titleScreen = document.getElementById('title-screen');
+        const startBtn = document.getElementById('start-btn');
+        const bgMusic = document.getElementById('background-music');
+        const ambientLoop = document.getElementById('ambient-loop');
+        const ambientOnce = document.getElementById('ambient-once');
+        const muteBtn = document.getElementById('mute-btn');
+        const creditsScreen = document.getElementById('credits-screen');
+        const creditsContent = document.getElementById('credits-content');
+        const textBox = document.getElementById('text-box');
+        const viewCreditsBtn = document.getElementById('view-credits-btn');
+
+        /* ==============
+           START GAME
+           ======================== */
+        startBtn.onclick = () => {
+            titleScreen.classList.add('hidden');
+            loadScene('start');
+        };
+
+        /* ==============
+           CREDITS SCREEN
+           ====================== */
+        viewCreditsBtn.addEventListener('click', () => {
+            showCredits();
+        });
+
+        function showCredits() {
+            creditsScreen.classList.add('show');
+            textBox.style.display = 'none';
+            creditsContent.classList.add('scrolling');
+
+            setTimeout(() => {
+                creditsScreen.classList.remove('show');
+                titleScreen.classList.remove('hidden');
+                textBox.style.display = 'flex';
+                creditsContent.classList.remove('scrolling');
+            }, 30000);
+        }
+
+        /* =============
+           AUDIO CONTROLS
+           ===================== */
+        let isMuted = false;
+        let activeOnceAudios = [];
+        let activeLoopAudios = [];
+        let pendingAudioTimers = [];
+
+        muteBtn.onclick = () => {
+            isMuted = !isMuted;
+            [bgMusic, ambientLoop, ambientOnce, bgVideo].forEach(a => a.muted = isMuted);
+            activeOnceAudios.forEach(a => a.muted = isMuted);
+            activeLoopAudios.forEach(a => a.muted = isMuted);
+            muteBtn.textContent = isMuted ? '🔇' : '🔊';
+        };
+
+        /* ===============
+        AMBIENT AUDIO
+        ========================== */
+        function playAmbientAudio(config) {
+            // Clear alle pending timers
+            pendingAudioTimers.forEach(timer => clearTimeout(timer));
+            pendingAudioTimers = [];
+
+            // Stop alle bestaande audio
+            ambientLoop.pause();
+            ambientLoop.src='';
+            ambientLoop.load(); // Reset de audio element
+            
+            ambientOnce.pause();
+            ambientOnce.src='';
+            ambientOnce.load();
+
+            // Stop alle once audios
+            activeOnceAudios.forEach(a => {
+                a.pause();
+                a.src = '';
+            });
+            activeOnceAudios = [];
+            
+            // Stop alle loop audios
+            activeLoopAudios.forEach(a => {
+                a.pause();
+                a.src = '';
+            });
+            activeLoopAudios = [];
+
+            if (!config) return;
+
+            // ONCE AMBIENTS (array support)
+            if (Array.isArray(config.once)) {
+                config.once.forEach(entry => {
+                    if (!entry?.src) return;
+                    const playAudio = () => {
+                        const a = new Audio(entry.src);
+                        a.volume = entry.volume ?? 0.5;
+                        a.muted = isMuted;
+                        a.loop = false;
+                        a.play().catch(() => {});
+                        activeOnceAudios.push(a);
+                        // Verwijder uit array wanneer klaar
+                        a.onended = () => {
+                            const index = activeOnceAudios.indexOf(a);
+                            if (index > -1) {
+                                activeOnceAudios.splice(index, 1);
+                            }
+                        };
+                    };
+                    if (entry.delay) {
+                        const timer = setTimeout(playAudio, entry.delay); // Sla timer op
+                        pendingAudioTimers.push(timer);
+                    } else {
+                        playAudio();
+                    }
+                });
+            } else if (config.once?.src) {
+                // Backwards compatible: enkele once audio
+                const playAudio = () => {
+                    ambientOnce.src = config.once.src;
+                    ambientOnce.volume = config.once.volume ?? 0.5;
+                    ambientOnce.muted = isMuted;
+                    ambientOnce.loop = false;
+                    ambientOnce.play().catch(() => {});
+                };
+                if (config.once.delay) {
+                    const timer = setTimeout(playAudio, config.once.delay); //  Sla timer op
+                    pendingAudioTimers.push(timer);
+                } else {
+                    playAudio();
+                }
+            }
+
+            // LOOP AMBIENT (met array support!)
+            if (Array.isArray(config.loop)) {
+                config.loop.forEach(entry => {
+                    if (!entry?.src) return;
+
+                    const timer = setTimeout(() => { // Sla timer op
+                        const a = new Audio(entry.src);
+                        a.volume = entry.volume ?? 0.5;
+                        a.muted = isMuted;
+                        a.loop = true;
+                        a.play().catch(() => {});
+                        activeLoopAudios.push(a);
+                    }, entry.delay ?? 0);
+                    pendingAudioTimers.push(timer);
+                });
+            } else if (config.loop?.src) {
+                const timer = setTimeout(() => { // Sla timer op
+                    ambientLoop.src = config.loop.src;
+                    ambientLoop.volume = config.loop.volume ?? 0.5;
+                    ambientLoop.muted = isMuted;
+                    ambientLoop.loop = true;
+                    ambientLoop.play().catch(() => {});
+                }, config.loop.delay ?? 0);
+                pendingAudioTimers.push(timer);
+            }
+        }
+
+        /* ===============
+           STATIC NOISE CONTROL
+           =========================== */
+        function setStaticNoise(type) {
+            // Reset alle classes
+            staticNoise.classList.remove('active', 'light', 'medium', 'heavy', 'scan');
+            
+            if (type && ['light', 'medium', 'heavy', 'scan'].includes(type)) {
+                staticNoise.classList.add('active', type);
+                console.log('Static noise activated:', type);
+            } else {
+                console.log('Static noise disabled');
+            }
+        }
+
+        /* ===============
+           SCENE LOADER
+           =========================== */
+        let currentScene = null; // Houd huidige scene bij
+
+        function loadScene(id) {
+            const scene = story[id];
+            if (!scene) {
+                console.error('Scene not found:', id);
+                return;
+            }
+
+            // Sla scene op
+            currentScene = scene;
+
+            // Stop oude audios
+            activeOnceAudios.forEach(a => {
+                a.pause();
+                a.src = '';
+            });
+            activeOnceAudios = [];
+
+            activeLoopAudios.forEach(a => {
+                a.pause();
+                a.src = '';
+            });
+            activeLoopAudios = [];
+
+            ambientLoop.pause();
+            ambientLoop.src = '';
+            ambientOnce.pause();
+            ambientOnce.src = '';
+
+            // Music
+            if (scene.music) {
+                bgMusic.src = scene.music;
+                bgMusic.muted = isMuted;
+                bgMusic.play().catch(()=>{});
+            }
+
+            // Ambient
+            playAmbientAudio(scene.ambientAudio);
+
+            // Media - COMPLETE RESET
+            bgVideo.classList.remove('active');
+            bgVideo.pause();
+            bgVideo.src = '';
+            bgVideo.load();
+            bgImage.classList.add('hidden');
+            bgImage.src = '';
+            setStaticNoise(null); // Reset static noise
+
+            // Media sequence
+            if (scene.mediaSequence) {
+                playMediaSequence(scene.mediaSequence, 0);
+            }
+
+            // Text
+            charName.textContent = scene.character || '';
+            dialogue.textContent = scene.text || '';
+
+            // Choices
+            choicesDiv.innerHTML = '';
+            scene.choices?.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = c.text;
+                btn.onclick = () => loadScene(c.next);
+                choicesDiv.appendChild(btn);
+            });
+
+            // Credits button
+            if (scene.isEnding) {
+                viewCreditsBtn.classList.remove('hidden');
+            } else {
+                viewCreditsBtn.classList.add('hidden');
+            }
+        }
+
+        /* ========
+           MEDIA SEQUENCE (PHOTOS + VIDEOS COMBINED)
+           ========================= */
+        function playMediaSequence(sequence, index = 0) {
+            const isLast = index === sequence.length - 1;
+            const media = sequence[index];
+            
+            console.log('Playing media', index + 1, 'of', sequence.length, '- type:', media.type);
+
+            if (media.type === 'image') {
+                // FOTO
+                console.log('Image:', media.src, '- duration:', media.duration, 'ms - noise:', media.staticNoise);
+                
+                // Verberg video, toon foto
+                bgVideo.classList.remove('active');
+                bgVideo.pause();
+                
+                // Glitch effect bij transitie (maar niet bij eerste item)
+                if (index > 0) {
+                    glitchOverlay.classList.add('glitching');
+                    setTimeout(() => {
+                        glitchOverlay.classList.remove('glitching');
+                        // Update image NA glitch
+                        bgImage.src = media.src;
+                        bgImage.classList.remove('hidden');
+                        setStaticNoise(media.staticNoise);
+                    }, 300);
+                } else {
+                    // Eerste item: direct tonen zonder glitch
+                    bgImage.src = media.src;
+                    bgImage.classList.remove('hidden');
+                    setStaticNoise(media.staticNoise);
+                }
+
+                // Als duration null is, blijft de foto staan (geen auto-advance)
+                // Anders ga naar volgende na duration
+                if (media.duration !== null && !isLast) {
+                    setTimeout(() => {
+                        console.log('Image duration ended, moving to next media');
+                        playMediaSequence(sequence, index + 1);
+                    }, media.duration);
+                } else if (media.duration !== null && isLast) {
+                    // Laatste item met duration - toon voor die duration en blijf staan
+                    setTimeout(() => {
+                        console.log('Last media duration ended, staying on final image');
+                    }, media.duration);
+                }
+                // Als duration null is (laatste image), blijft het gewoon staan
+
+            } else if (media.type === 'video') {
+                // VIDEO
+                console.log('Video:', media.src, '- noise:', media.staticNoise);
+                
+                // Verberg foto, toon video
+                bgImage.classList.add('hidden');
+                
+                let videoStarted = false;
+
+                // Setup video
+                bgVideo.pause();
+                bgVideo.removeAttribute('src');
+                bgVideo.load();
+                bgVideo.src = media.src;
+                bgVideo.loop = isLast;  // Laatste video loopt, andere niet
+                bgVideo.muted = isMuted;
+
+                // Activeer noise tijdens video (optioneel)
+                setStaticNoise(media.staticNoise);
+
+                // Error handler
+                bgVideo.onerror = (e) => {
+                    console.error('Video error:', e);
+                };
+
+                // Play video
+                bgVideo.load();
+                bgVideo.classList.add('active');
+                
+                const playPromise = bgVideo.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        videoStarted = true;
+                        console.log('✅ Video playing successfully');
+                    }).catch((error) => {
+                        console.error('❌ Play promise rejected:', error);
+                    });
+                }
+
+                bgVideo.onplaying = () => {
+                    videoStarted = true;
+                    console.log('✅ Video onplaying event fired');
+                };
+
+                // Glitch effect bij start
+                if (index > 0) {
+                    glitchOverlay.classList.add('glitching');
+                    setTimeout(() => {
+                        glitchOverlay.classList.remove('glitching');
+                    }, 300);
+                }
+
+                // Wanneer video eindigt
+                bgVideo.onended = () => {
+                    console.log('Video ended');
+                    
+                    if (!isLast) {
+                        // Ga naar volgende media
+                        glitchOverlay.classList.add('glitching');
+                        setTimeout(() => {
+                            glitchOverlay.classList.remove('glitching');
+                            playMediaSequence(sequence, index + 1);
+                        }, 400);
+                    } else {
+                        // Laatste video - video blijft zichtbaar op laatste frame
+                        console.log('Last video ended');
+                    }
+                };
+            }
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,2856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pale Abbess</title>
+    <style>
+        /* ========== BASICS ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            background: #000;
+        }
+
+        /* ========== LAYOUT ========== */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        #video-container {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ========== MEDIA LAYERS ========== */
+        .background-layer {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            transition: opacity 0.8s ease;
+        }
+
+        #background-video {
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        #background-video.active {
+            pointer-events: auto;
+            opacity: 1;
+        }
+
+        #background-image { opacity: 1;}
+
+        #background-image.hidden {
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        /* ========== STATIC NOISE OVERLAY ========== */
+        #static-noise {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0;
+            background-size: 200px 200px;
+            mix-blend-mode: screen;
+        }
+
+        #static-noise.active { opacity: 1;}
+
+        /* Verschillende noise types */
+        #static-noise.light {
+            animation: staticNoiseLight 0.1s steps(1) infinite;
+        }
+
+        #static-noise.medium {
+            animation: staticNoiseMedium 0.08s steps(1) infinite;
+        }
+
+        #static-noise.heavy {
+            animation: staticNoiseHeavy 0.05s steps(1) infinite;
+        }
+
+        #static-noise.scan {
+            animation: staticNoiseScan 2s linear infinite;
+        }
+
+        @keyframes staticNoiseLight {
+            0%  { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.15 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            25% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="4" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.15 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            50% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.15 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            75% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.92" numOctaves="4" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.15 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+        }
+        @keyframes staticNoiseMedium {
+            0% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="5" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.3 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            33% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="5" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.3 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            66% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.88" numOctaves="5" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.3 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+        }
+        @keyframes staticNoiseHeavy {
+            0%  { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="6" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.5 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+            50% { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="6" /><feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.5 0"/></filter><rect width="200" height="200" filter="url(%23n)"/></svg>'); }
+        }
+
+        @keyframes staticNoiseScan {
+            0% { 
+                background: linear-gradient(to bottom, 
+                    transparent 0%, 
+                    rgba(255,255,255,0.1) 48%, 
+                    rgba(255,255,255,0.3) 50%, 
+                    rgba(255,255,255,0.1) 52%, 
+                    transparent 100%);
+                background-size: 100% 40px;
+                background-position: 0 0;
+            }
+            100% { 
+                background-position: 0 100vh;
+            }
+        }
+
+        /* ========== OVERLAYS ========== */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, transparent 0%, transparent 70%, rgba(10,0,0,0.3) 100%);
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        #glitch-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        #glitch-overlay.glitching {
+            animation: glitchFlash 0.3s ease-in-out;
+        }
+
+        @keyframes glitchFlash {
+            0%, 100% { opacity: 0; }
+            10% { opacity: 1; background: #9b2626; }
+            20% { opacity: 0; }
+            30% { opacity: 1; background: #1e6c1e; }
+            40% { opacity: 0; }
+            50% { opacity: 1; background: #16168f; }
+            60% { opacity: 0; }
+            70% { opacity: 1; background: #811717; }
+            80% { opacity: 0; }
+        }
+
+        /* ========== TEKSTBOX ========== */
+        #text-box {
+            position: relative;
+            width: 450px;
+            height: 100%;
+            background: rgba(10, 0, 0, 0.95);
+            padding: 40px 30px;
+            z-index: 6;
+            border-left: 2px solid #8b0000;
+            box-shadow: -10px 0 40px rgba(139, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        #character-name {
+            color: #ff4444;
+            font-size: 30px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+            letter-spacing: 2px;
+        }
+
+        #dialogue {
+            color: #ddd;
+            font-size: 20px;
+            line-height: 1.7;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+            font-style: italic;
+        }
+
+        #choices {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .choice-btn {
+            background: radial-gradient(
+                #000000,
+                #2d0101 80%,
+                #4a0000
+            );
+            color: #f8f8f7;
+            border: 2px solid #8b0000;
+            padding: 15px 25px;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            text-align: left;
+            box-shadow: 0 4px 8px rgba(139, 0, 0, 0.4);
+            font-family: 'Courier New', monospace;
+        }
+
+        .choice-btn:hover {
+            transform: translateX(10px);
+            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.7);
+            background: linear-gradient(135deg, #4a0000 0%, #6a0000 100%);
+            color: #fff;
+            border-color: #ff0000;
+        }
+
+        .choice-btn:active {
+            transform: translateX(10px) scale(0.98);
+        }
+
+        /* ========== TITLE SCREEN ========== */
+        #title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0000 0%, #1a0a0a 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.5s ease;
+        }
+
+        #title-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #game-title {
+            font-family: "Old English Text MT", "Engravers Old English", serif;
+            font-size: 100px;
+            color: #ff4444;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+            text-align: center;
+            letter-spacing: 5px;
+        }
+
+        #subtitle {
+            font-size: 24px;
+            color: #999;
+            margin-bottom: 60px;
+            font-style: italic;
+        }
+
+        #start-btn {
+            background: linear-gradient(135deg, #4a0000 0%, #8b0000 100%);
+            color: #fff;
+            border: 2px solid #ff0000;
+            padding: 20px 60px;
+            font-size: 22px;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(139, 0, 0, 0.6);
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+
+        #start-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 36px rgba(255, 0, 0, 0.8);
+            background: linear-gradient(135deg, #8b0000 0%, #aa0000 100%);
+        }
+
+        .fade-in {
+            animation: fadeIn 1.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .pulse {
+            animation: pulse 5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { text-shadow: 0 0 10px rgba(255, 68, 68, 0.8); }
+            50% { text-shadow: 0 0 33px rgba(255, 68, 68, 1), 0 0 99px rgba(255, 0, 0, 0.8); }
+        }
+
+        /* ========== AUDIO CONTROLS ========== */
+        #audio-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 20;
+        }
+
+        #mute-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            background: rgba(74, 0, 0, 0.6);
+            color: #ff9999;
+            border: 1px solid #8b0000;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #mute-btn:hover {
+            background: rgba(106, 0, 0, 0.9);
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(139, 0, 0, 0.6);
+        }
+
+        /* ================= CREDITS ================= */
+        #credits-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0000 0%, #1a0a0a 100%);
+            display: none;
+            z-index: 11;
+            overflow: hidden;
+        }
+
+        #credits-screen.show { display: block;}
+
+        #credits-content {
+            text-align: center;
+            color: #ddd;
+            padding: 60px 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            position: absolute;
+            width: 100%;
+            bottom: -150%;
+        }
+
+        #credits-content.scrolling {
+            animation: creditsScroll 30s linear forwards;
+        }
+
+        @keyframes creditsScroll {
+            0% { bottom: -250%;}
+            100% { bottom: 100%; }
+        }
+
+        .credits-title {
+            font-family: "Old English Text MT", "Engravers Old English", serif;
+            font-size: 48px;
+            color: #ff4444;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+            letter-spacing: 3px;
+        }
+
+        .credits-section {
+            margin: 30px 0;
+            padding: 20px;
+            border-top: 1px solid #4a0000;
+        }
+
+        .credits-section h3 {
+            font-family: "Old English Text MT", "Engravers Old English", serif;
+            font-size: 24px;
+            color: #ff9999;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .credits-section p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #ccc;
+            margin: 8px 0;
+        }
+
+        .credits-role {
+            color: #ff6666;
+            font-weight: bold;
+        }
+
+        #view-credits-btn {
+            background: linear-gradient(135deg, #2a0000 0%, #4a0000 100%);
+            color: #ff9999;
+            border: 2px solid #8b0000;
+            padding: 12px 20px;
+            font-size: 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+            width: 100%;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(139, 0, 0, 0.4);
+        }
+
+        #view-credits-btn:hover {
+            background: linear-gradient(135deg, #4a0000 0%, #6a0000 100%);
+            color: #fff;
+            border-color: #ff0000;
+            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.7);
+        }
+
+        #view-credits-btn.hidden { display: none; }
+    </style>
+</head>
+
+<body>
+    <!-- ===== AUDIO ===== -->
+    <audio id="background-music" loop></audio>
+    <audio id="ambient-loop" loop></audio>
+    <audio id="ambient-once"></audio>
+
+    <!-- ===== AUDIO CONTROLS ===== -->
+    <div id="audio-controls">
+        <button id="mute-btn">🔊</button>
+    </div>
+
+    <!-- ===== GAME ===== -->
+    <div id="game-container">
+        <div id="video-container">
+            <img id="background-image" class="background-layer fade-in" src="" alt="Background">
+            <video id="background-video" class="background-layer" loop playsinline preload="auto">
+                <source src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <div id="static-noise"></div>
+            <div id="glitch-overlay"></div>
+            <div id="overlay"></div>
+        </div>
+
+        <div id="text-box">
+            <div id="character-name"></div>
+            <div id="dialogue"></div>
+            <div id="choices"></div>
+            <button id="view-credits-btn" class="hidden">
+                View Credits
+            </button>
+        </div>
+
+        <div id="title-screen">
+            <h1 id="game-title" class="pulse">The Pale Abbess</h1>
+            <div id="subtitle">"We have such sights to show you..."</div>
+            <button id="start-btn">BEGIN</button>
+        </div>
+    </div>
+
+    <div id="credits-screen">
+        <div id="credits-content">
+            <h2 class="credits-title">Credits</h2>
+
+            <div class="credits-section">
+                <h3>Cast</h3>
+                <p><span class="credits-role">The Pale Abbess</span> - Ethereal Voice Performance</p>
+                <p><span class="credits-role">Narrator</span> - Omniscient Presence</p>
+                <p><span class="credits-role">The seeker of knowledge</span> - Luna Van Kerckhove</p>
+                <p><span class="credits-role">Black Cat</span> - Tjuzi</p>
+                <p><span class="credits-role">Shopkeeper</span> - Warning Voice</p>
+            </div>
+
+            <div class="credits-section">
+                <h3>Visual Assets</h3>
+                <p>Photography - <span class="credits-role">Luna Van Kerckhove</span></p>
+                <p>Background Images & Video - <span class="credits-role">Patrick Van Kerckhove</span>
+            </div>
+
+            <div class="credits-section">
+                <h3>Music</h3>
+                <p><span class="credits-role">"Day of Chaos"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <p><span class="credits-role">"Come Play with Me"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <p><span class="credits-role">"SCP-x2x (Unseen Presence)"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <p><span class="credits-role">"This House"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <p><span class="credits-role">"SCP-x4x (Mind Leech)"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <p><span class="credits-role">"Final Count"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <p><span class="credits-role">"Deep Noise"</span> - Kevin MacLeod (incompetech.com)</p>
+                <p>Licensed under Creative Commons: By Attribution 4.0 License</p>
+                <p>http://creativecommons.org/licenses/by/4.0/</p>
+                <!-- TODO -->
+            </div>
+
+            <div class="credits-section">
+                <h3>Soundbytes</h3>
+                <p><span class="credits-role">Rattling Chains</span> - Jeff Hottman (youtube)</p>
+                <p><span class="credits-role">Shopkeeper voice</span> - Ryan (generated by Luvvoice)</p> 
+                <p><span class="credits-role">Hail Mary (reversed)</span> - Katja (generated by Luvvoice)</p>  
+                <!-- TODO -->
+            </div>
+
+            <div class="credits-section">
+                <h3>Inspired by</h3>
+                <p><span class="credits-role">Hellraiser</span> - Clive Barker</p>
+                <p>The Cenobite mythology and Lament Configuration</p>
+            </div>
+
+            <div class="credits-section">
+                <h3>Development</h3>
+                <p><span class="credits-role">Story & Design</span> - Patrick Van Kerckhove</p>
+                <p><span class="credits-role">Image, Sound & Video editing</span> - Patrick Van Kerckhove</p>
+                <p><span class="credits-role">Programming</span> - HTML5, CSS3, JavaScript</p>
+            </div>
+
+            <div class="credits-section">
+                <p style="font-style: italic; margin-top: 40px; font-size: 28px; color: #ff6666;">
+                    "The box. You opened it. We came."
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        /* =========================================================
+           STORY DATA
+           ========================================================= */
+      const story = {
+        // Fase 1 
+        start: {
+            mediaSequence: [        
+                { 
+                    type: 'video',
+                    src: 'video/Luna/start/shop_check_window.mp4',
+                    staticNoise: 'high' // OPTIES: 'light', 'medium', 'heavy', 'scan', of null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/Fase1/shop_check_window.png',
+                    duration: null,
+                    staticNoise: 'scan'
+                }
+            ],
+            ambientAudio: {
+                loop: { src: 'audio/falling_rain.m4a', volume: 0.7, delay: 0 }
+            },
+            music: 'audio/Day of Chaos.mp3',
+            character: 'Narrator',
+            text: 'The rain-slicked cobblestones reflect the dim gaslight as you stand before the curiosity shop. Its windows display fragments of forgotten worlds—artifacts, occult symbols, objects that whisper of hidden knowledge. You\'ve been searching for answers, for truths beyond the mundane. Something in this collection calls to you, promising secrets that libraries and universities could never reveal.',
+            choices: [
+                { text: 'Enter the shop', next: 'enter_shop' },
+                { text: 'Walk away from temptation', next: 'walk_away_outside' },
+                { text: '-- admin shortcut  --', next: 'enter_labyrinth'}, // TODO 
+                { text: '-- admin shortcut 2 --', next: 'main_questions' } // TODO
+            ]
+        },
+        walk_away_outside: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Luna/start/walk_away.mp4', staticNoise: 'high' },
+                { type: 'video', src: 'video/Luna/start/antiqueshop_vitrine.mp4', staticNoise: 'scan' }
+            ],
+            ambientAudio: {
+                loop: { src: 'audio/falling_rain.m4a', volume: 0.7, delay: 0 }
+            },
+            character: 'Narrator',
+            text: 'You turn away from the shop, from whatever mysteries lie within. The rain continues to fall. Sometimes the greatest wisdom is knowing which doors should remain unopened. You walk into the night, your questions unanswered but your fate your own.',
+            isEnding: true,
+            choices: [
+                { text: 'Reconsider and enter', next: 'enter_shop' },
+                { text: 'Keep walking', next: 'true_escape' }
+            ]
+        },
+        true_escape: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Luna/start/antiqueshop_vitrine.mp4', staticNoise: 'scan' }
+            ],
+            ambientAudio: {
+                loop: { src: 'audio/falling_rain.m4a', volume: 0.7, delay: 0 }
+            },
+            character: 'Narrator',
+            text: 'You disappear into the rainy streets, the shop fading behind you. Whatever secrets it held will remain unknown. Perhaps that is for the best. Some knowledge comes at too high a price.',
+            isEnding: true,
+            choices: [
+                { text: 'Start Over', next: 'start' }
+            ]
+        },
+        enter_shop: {
+            mediaSequence: [
+                { 
+                    type: 'video', 
+                    src: 'video/Luna/start/enter_shop.mp4',
+                    staticNoise: 'scan'
+                },
+                {
+                    type: 'image',
+                    src: 'image/Fase1/walk_in_shop.png',
+                    duration: 2000,
+                    staticNoise: "medium"
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Luna/start/shop_loop.mp4',
+                    staticNoise: null
+                },
+            ],
+            character: 'Narrator',
+            text: 'You stand in the dimly lit antique shop, dust particles dancing in the amber light. Among the forgotten relics, a peculiar puzzle box catches your eye. Its geometric patterns seem to shift when you look away.',
+            choices: [
+                { text: 'Examine the strange box more closely', next: 'examine_box' },
+                { text: 'Ask the shopkeeper about its origin', next: 'ask_shopkeeper' },
+                { text: 'Leave the shop immediately', next: 'leave_shop' },
+            ]
+        },
+        examine_box: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Luna/start/shop_neem_box.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video', // TODO pauze uit loop halen
+                    src: 'video/Luna/start/shop_Box_in hands_loop.mp4',
+                    staticNoise: null
+                },
+            ],
+            character: 'Narrator',
+            text: 'The box feels warm to the touch, almost alive. Intricate patterns of squares and diamonds cover its surface. Your fingers trace the grooves instinctively, as if the box itself guides your movements.',
+            choices: [
+                { text: 'Ask the shopkeeper about its origin', next: 'ask_shopkeeper' },
+                { text: 'Put it back and walk away', next: 'walk_away' }
+            ]
+        },
+        ask_shopkeeper: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Luna/start/shop_loop.mp4',
+                    staticNoise: 'medium'
+                },
+            ],
+            ambientAudio: {
+                once: { src: 'audio/ask_shopkeeper.mp3', volume: 0.8, delay: 2000 },
+            },
+            character: 'Shopkeeper',
+            text: 'The old man\'s eyes widen with fear. "That... that box has been here longer than I have. Those who buy it never return it. Never return at all. I beg you, leave it be."',
+            choices: [
+                { text: 'Examine the strange box more closely', next: 'examine_box' },
+                { text: 'Demand to know more', next: 'demand_more' },
+                { text: 'Heed his warning and leave', next: 'leave_shop' }
+            ]
+        },
+        leave_shop: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/The_portal_close.png',
+                    duration: null,
+                    staticNoise: 'scan'
+                },
+            ],
+            ambientAudio: {
+                once: [
+                    { src: 'audio/Wees_gegroet_Du_reversed.m4a', volume: 0.05, delay: 0 }
+                ]
+            },
+            character: 'Narrator',
+            text: 'You step out into the cold night air, but the image of the box haunts your thoughts. You survived by choosing ignorance. Some doors are meant to stay closed.',
+            isEnding: true,
+            choices: [
+                { text: 'Start Over', next: 'start' }
+            ]
+        },
+        demand_more: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/Fase1/The_book.jpg',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            ambientAudio: {
+                once: { src: 'audio/demand_more.mp3', volume: 0.8, delay: 2000 },
+                loop: { src: 'audio/Wees_gegroet_Du_reversed.m4a', volume: 0.05, delay: 0 }
+            },
+            character: 'Shopkeeper',
+            text: '"It\'s called the Lament Configuration. A gateway. Those who solve it summon... things. Beings that exist beyond pleasure and pain. They come when called, and they always answer."',
+            choices: [
+                { text: 'Examine the strange box more closely', next: 'examine_box' },
+                { text: 'Ignore his warning and purchase the box', next: 'take_home' },
+                { text: 'Leave while you still can', next: 'leave_shop' }
+            ]
+        },
+        walk_away: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/The_portal_close.png',
+                    duration: null,
+                    staticNoise: 'scan'
+                },
+            ],
+            ambientAudio: {
+                once: [
+                    { src: 'audio/chains_rattling.m4a', volume: 0.1, delay: 0 }
+                ]
+            },
+            character: 'Narrator',
+            text: 'You walk away and try to forget about the box, but its image burns in your mind. That night, you dream of chains and geometries that shouldn\'t exist. You wake in a cold sweat, relieved it was only a dream.',
+            isEnding: true,
+            choices: [
+                { text: 'Start Over', next: 'start' }
+            ]
+        },
+        // Fase 2
+        take_home: {
+            mediaSequence: [        
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/Box_&_candle_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/Box_candle_&_cat.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/Box_&_candle_loop.mp4',
+                    staticNoise: null
+                },
+            ], 
+            music: 'audio/Come Play with Me.mp3',
+            character: 'Narrator',
+            text: 'Back at home, candlelight flickers across the box\'s surface. The patterns seem clearer now, almost calling to you. Your hands move of their own accord, beginning the configuration.',
+            choices: [
+                { text: 'Complete the puzzle', next: 'solve_puzzle' },
+                { text: 'Stop and lock it away', next: 'lock_away' }
+            ]
+        },
+        lock_away: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/The_portal_close.png',
+                    duration: null,
+                    staticNoise: 'scan'
+                },
+            ],
+            ambientAudio: {
+                once: [
+                    { src: 'audio/chains_rattling.m4a', volume: 0.1, delay: 0 }
+                ]
+            },
+            character: 'Narrator',
+            text: 'You lock the box in a drawer, hands trembling. But late at night, you hear it... clicking. Rearranging itself. Calling to you. How long can you resist?',
+            isEnding: true,
+            choices: [
+                { text: 'Start Over', next: 'start' }
+            ]
+        },
+        solve_puzzle: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/final_piece_of_box.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/portal_opens.mp4',
+                    staticNoise: 'high'
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/portal_open_loop.mp4',
+                    staticNoise: 'scan'
+                },
+            ],
+            ambientAudio: {
+                loop: {
+                    src: 'audio/chains_rattling.m4a',
+                    volume: 0.5,
+                    delay: 0
+                }
+            },
+            music: 'audio/This House.mp3',
+            character: 'Narrator',
+            text: 'The final piece clicks into place. A brilliant blue light erupts from the box. The air tears open with a sound like screaming metal. Reality splits. The gateway is open.',
+            choices: [
+                { text: 'Look into the opening', next: 'see_portal' }
+            ]
+        },
+        see_portal: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/portal_open_1.mp4',
+                    staticNoise: 'medium'
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/portal_wall_change_loop.mp4',
+                    staticNoise: 'high'
+                },
+            ],
+            ambientAudio: {
+                loop: {
+                    src: 'audio/chains_rattling.m4a',
+                    volume: 0.2,
+                    delay: 3000
+                }
+            },
+            character: 'Narrator',
+            text: 'Through the portal, you glimpse impossible geometry. A labyrinth of flesh and iron that extends infinitely. Chains rattle in the darkness. Something is coming through.',
+            choices: [
+                { text: 'Wait for what emerges', next: 'meet_cenobite' },
+            ]
+        },
+        meet_cenobite: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/into_darkness.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/Abbess_meet_cenobite.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+            ],
+            ambientAudio: {
+                once: [
+                    { src: 'audio/chains_rattling.m4a', volume: 0.1, delay: 0 }
+                ]
+            },
+            music: 'audio/SCP-x2x (Unseen Presence).mp3',
+            character: 'The Pale Abbess',
+            text: 'She steps through—a figure draped in black leather, her pale skin marked with ritualistic patterns. Chains hang from her like ceremonial robes. Her voice is silk wrapped around razors. "You solved our puzzle. We have such experiences to share with you."',
+            choices: [
+                { text: 'Ask what she wants', next: 'ask_wants' }
+            ]
+        },
+        ask_wants: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/ask_wants/Pale_Abbess_Ask_wants_1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/ask_wants/Pale_Abbess_Ask_wants_2.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/ask_wants/Pale_Abbess_Ask_wants_3.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Want? We are explorers in the further regions of experience. You opened the box. You summoned us. Now we must show you the depths of sensation—where pain and pleasure become indistinguishable."',
+            choices: [
+                { text: 'Enter the labyrinth willingly', next: 'accept_fate' },
+                { text: 'Beg for mercy', next: 'beg_mercy' },
+            ]
+        },
+        beg_mercy: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/beg_mercy/Pale_Abbess_beg_mercy_1.mp4',
+                    staticNoise: 'light'
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/beg_mercy/Pale_Abbess_beg_mercy_2.mp4',
+                    staticNoise: 'medium'
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: 'light'
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: 'She tilts her head, almost curious. "Mercy? There is no mercy in our realm. Only transformation. You sought this. The box does not open by accident. It answers desire."',
+            choices: [
+                { text: 'Submit to the transformation', next: 'enter_labyrinth' }
+            ]
+        },
+        accept_fate: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/accept_fate/Pale_Abbess_accept_fate_1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/accept_fate/Pale_Abbess_accept_fate_2.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/accept_fate/Pale_Abbess_accept_fate_3.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Abbess/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: 'A thin smile crosses her lips. "Acceptance. How rare. Perhaps you will find what you truly seek in our domain. Come. The labyrinth awaits."',
+            choices: [
+                { text: 'Step through the portal', next: 'enter_labyrinth' }
+            ]
+        },
+        // Fase 3
+        enter_labyrinth: {
+            music: 'audio/Final Count.mp3',
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/step_into_labyrinth.mp4',
+                    staticNoise: 'high'
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/entrance_wall_loop.mp4',
+                    staticNoise: 'scan'
+                },
+            ],
+            ambientAudio: {
+                loop: {
+                    src: 'audio/chains_rattling.m4a',
+                    volume: 0.5,
+                    delay: 2000
+                }
+            },
+            character: 'Narrator',
+            text: 'You step into the labyrinth—a cathedral of suffering and ecstasy. The walls pulse like living flesh. Chains sing in harmonies that should not exist. You have become part of the eternal configuration.',
+            choices: [
+                { text: 'Explore deeper into the labyrinth', next: 'labyrinth_depths' },
+            ]
+        },
+        labyrinth_depths: {
+            mediaSequence: [{ type: 'video', src: 'video/Fase3/walking_through_labyrinth.mp4', staticNoise: 'scan' }],
+            ambientAudio: {
+                loop: [
+                    { src: 'audio/chains_rattling.m4a', volume: 0.2, delay: 0 },
+                    { src: 'audio/Wees_gegroet_Du_reversed.m4a', volume: 0.2, delay: 3000 }
+                ]
+            },
+            character: 'Narrator',
+            text: 'Corridors stretch endlessly in impossible directions. The stone walls bear ancient marks—religious symbols corrupted and twisted. You hear distant chains… and something like inverted prayer.',
+            choices: [
+                { text: 'Follow the sound of chains', next: 'chain_corridor' },
+                { text: 'Follow the sound of prayer', next: 'prayer_chamber' },
+                { text: 'Search for an exit', next: 'search_exit_early' }
+            ]
+        },
+        chain_corridor: {
+            music: 'audio/Deep Noise.mp3',
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase3/corridor_chains.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/step_toward_wall.mp4', staticNoise: null },
+                { type: 'image', src: 'image/Fase3/step_toward_wall.png', staticNoise: 'scan' }
+            ],
+            ambientAudio: {
+                loop: [
+                    { src: 'audio/chains_rattling.m4a', volume: 0.5, delay: 0 },
+                    { src: 'audio/breathing.m4a', volume: 1, delay: 5000 }
+                ]
+            },
+            character: 'Narrator',
+            text: "The chains guide you deeper into corridors that feel like forgotten monastery halls. You arrive at an ancient wall—stone sealed with ritual care. Faint breathing comes from behind it… alive.",
+            choices: [{ text: "Listen closer", next: 'symbol_study' }]
+        },
+        prayer_chamber: {
+            music: 'audio/Deep Noise.mp3',
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase3/corridor_prayer.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/step_toward_wall.mp4', staticNoise: null },
+                { type: 'image', src: 'image/Fase3/step_toward_wall.png', staticNoise: 'scan' }
+            ],
+            ambientAudio: {
+                    once: { src: 'audio/Wees_gegroet_Du_reversed.m4a', volume: 0.1 },
+                    loop: { src: 'audio/breathing.m4a', volume: 0.8, delay: 20000 }
+                },
+            character: 'Narrator',
+            text: "The corrupted Latin prayers draw you through ruined cloisters to a sealed wall. Words of enclosure and eternal rest echo faintly. Something—someone—still lingers within.",
+            choices: [{ text: "Examine the wall", next: 'symbol_study' }]
+        },
+        search_exit_early: {
+            music: 'audio/Deep Noise.mp3',
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase3/walking_through_labyrinth.mp4', staticNoise: 'scan' },
+                { type: 'video', src: 'video/Fase3/corridor_prayer.mp4', staticNoise: 'scan' },
+                { type: 'video', src: 'video/Fase3/step_toward_wall.mp4', staticNoise: null },
+                { type: 'image', src: 'image/Fase3/step_toward_wall.png', staticNoise: 'scan' }
+            ],
+            ambientAudio: {
+                loop: [
+                    { src: 'audio/chains_rattling.m4a', volume: 0.2, delay: 0 },
+                    { src: 'audio/breathing.m4a', volume: 0.8, delay: 7000 }
+                ]
+            },
+            character: 'Narrator',
+            text: "Every corridor circles back. Exhausted, you stop before an old sealed wall inscribed with signs of offering and foundation. A living presence waits on the other side.",
+            choices: [{ text: "Investigate the inscriptions", next: 'symbol_study' }]
+        },
+        symbol_study: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase3/wall_Luna_first.mp4', staticNoise: null },
+                { type: 'image', src: 'image/Fase3/wall_1.png', duration: null, staticNoise: 'scan' }
+            ],
+            ambientAudio: {
+                loop: [
+                     { src: 'audio/chains_rattling.m4a', volume: 0.2, delay: 0 },
+                     { src: 'audio/breathing.m4a', volume: 1, delay: 5000 }
+                ]
+            },
+            character: 'Narrator',
+            text: "The wall bears traces of an ancient consecration: an abbess, a living sacrifice, words such as 'ancora' and 'ancorata sub ecclesia'. Something here still breathes. Someone.",
+            choices: [{ text: "Search further", next: 'monastery_discovery' }]
+        },
+        monastery_discovery: {
+            music: 'audio/This House.mp3',
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase3/toward_second_wall.mp4', staticNoise: null },
+                { type: 'image', src: 'image/Fase3/wall_2.png', staticNoise: 'scan' }
+            ],
+            ambientAudio: {
+                loop: [
+                    { src: 'audio/chains_rattling.m4a', volume: 0.2, delay: 2000 },
+                    { src: 'audio/breathing.m4a', volume: 0.8, delay: 0 }
+                ]
+            },
+            character: 'Narrator',
+            text: 'You find it—ancient monastery walls, medieval stonework. An inscription above reads: "Hic iacet ancora monasterii" - Here lies the anchor of the monastery. Behind the stones, impossibly, breathing.',
+            choices: [{ text: "Step back slowly", next: 'abbess_first_encounter_part1' }]
+        },
+        abbess_first_encounter_part1: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase3/walk_away.mp4', staticNoise: 'scan' },
+                { type: 'video', src: 'video/Fase3/abbess_materialises.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_loop.mp4', staticNoise: null },
+            ],
+            ambientAudio: {
+                loop: { src: 'audio/breathing.m4a', volume: 1 }
+            },
+            character: 'The Pale Abbess',
+            text: 'She appears before you—pale as bone, eyes white as milk. Chains emerge from her flesh like roots from foundation stones, and a cross across her chest.',
+            choices: [{ text: 'Listen to her', next: 'abbess_first_encounter_part2' }]
+        },
+        abbess_first_encounter_part2: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase3/abbess_encounter_2_0.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_2_1.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_2_2.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_loop.mp4', staticNoise: null },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Welcome, seeker. You stand in what I helped to build—a monastery anchored by my devotion. I was sealed into these walls by choice… but the strength I found was not divine."',
+            choices: [
+                { text: 'Ask why she chose this', next: 'main_questions' },
+                { text: 'Ask what happened to her eyes', next: 'main_questions' },
+                { text: 'Ask what she became', next: 'main_questions' }
+            ]
+        },
+        main_questions: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase3/main_questions_1.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/main_questions_2.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/main_questions_3.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_loop.mp4', staticNoise: null },
+            ],
+            character: 'The Pale Abbess',
+            text: "\"Ask. I see curiosity burning in you—the same fire that once consumed me. Speak your questions, seeker.\"",
+            choices: [
+                { text: "Why choose to be sealed alive?", next: 'prison_question' },
+                { text: "What happened to your eyes?", next: 'eyes_question' },
+                { text: "Tell me your full story", next: 'abbess_full_story' }
+            ]
+        },
+        // Fase 4: QUESTION HUB EN BACKSTORY
+        prison_question: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase4/prison_question/prison_question_1.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/prison_question/prison_question_2.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/prison_question/prison_question_3.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/prison_question/prison_question_4.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_loop.mp4', staticNoise: null },
+            ],
+            character: 'The Pale Abbess',
+            text: '"The Church demanded I destroy my library—centuries of knowledge. Gnostic texts, pagan philosophy, books on alchemy and mysticism. I refused. But I would not flee like a heretic. Instead, I chose the anchorite life."',
+            choices: [
+                { text: 'What is an anchorite?', next: 'anchorite_explanation' },
+                { text: 'Why choose that?', next: 'choice_explanation' }
+            ]
+        },
+        anchorite_explanation: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase4/anchorite_explanation/anchorite_explanation_1.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/anchorite_explanation/anchorite_explanation_2.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/anchorite_explanation/anchorite_explanation_3.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/anchorite_explanation/anchorite_explanation_4.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_loop.mp4', staticNoise: null },
+            ],
+            character: 'The Pale Abbess',
+            text: '"An anchorite—one who is anchored. Sealed alive within a cell, devoted to prayer and contemplation. \'Ancorata sub ecclesia,\' we say—anchored beneath the church like an anchor beneath a ship. A living foundation stone."',
+            choices: [
+                { text: 'Continue your story', next: 'abbess_full_story' }
+            ]
+        },
+        choice_explanation: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase4/choice_explanation/choice_explanation_1.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/choice_explanation/choice_explanation_2.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/choice_explanation/choice_explanation_3.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/choice_explanation/choice_explanation_4.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_loop.mp4', staticNoise: null },
+            ],
+            character: 'The Pale Abbess',
+            text: '"I believed my sacrifice would protect the monastery. A living building sacrifice—my devotion would strengthen the very stones. Ancient practice, blessed by the Church when done willingly. I thought I would find God in that darkness."',
+            choices: [
+                { text: 'And did you?', next: 'god_question' }
+            ]
+        },
+        god_question: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase4/god_question/god_question_1.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/god_question/god_question_2.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/god_question/god_question_3.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_loop.mp4', staticNoise: null },
+            ],
+            character: 'The Pale Abbess',
+            text: '"I found something. Whether it was God... that is a theological question I am no longer qualified to answer. Come, let me tell you the full tale."',
+            choices: [
+                { text: 'Tell me everything', next: 'abbess_full_story' }
+            ]
+        },
+        eyes_question: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase4/eyes_question/eyes_question_1.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/eyes_question/eyes_question_2.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/eyes_question/eyes_question_3.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_loop.mp4', staticNoise: null },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Total darkness. No light ever penetrated my cell—that was the point. An anchorite dwells in darkness to see divine light within. But years without any light at all... my eyes changed. The pupils expanded, consuming all color."',
+            choices: [
+                { text: 'How long were you sealed?', next: 'time_sealed' },
+                { text: 'What did you see in the darkness?', next: 'darkness_visions' }
+            ]
+        },
+        time_sealed: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase4/time_sealed/time_sealed_1.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/time_sealed/time_sealed_2.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/time_sealed/time_sealed_3.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_loop.mp4', staticNoise: null },
+            ],
+            character: 'The Pale Abbess',
+            text: '"I counted days by the food that came through the slot. Three years. Then I stopped counting. Time became meaningless in that darkness. Only prayer remained. Prayer... and eventually, something else."',
+            choices: [
+                { text: 'What else?', next: 'box_hint' }
+            ]
+        },
+        darkness_visions: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase4/darkness_visions/darkness_visions_1.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/darkness_visions/darkness_visions_2.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/darkness_visions/darkness_visions_3.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_loop.mp4', staticNoise: null },
+            ],
+            character: 'The Pale Abbess',
+            text: '"At first, only visions of God I hoped to see. Then madness—shapes, voices, memories twisted. Finally... geometry. Patterns in the darkness. A puzzle that should not exist, yet did."',
+            choices: [
+                { text: 'Tell me more', next: 'abbess_full_story' }
+            ]
+        },
+        box_hint: {
+            mediaSequence: [
+                { type: 'video', src: 'video/Fase4/box_hint/box_hint_1.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/box_hint/box_hint_2.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase4/box_hint/box_hint_3.mp4', staticNoise: null },
+                { type: 'video', src: 'video/Fase3/abbess_encounter_loop.mp4', staticNoise: null },
+            ],
+            character: 'The Pale Abbess',
+            text: '"The Configuration. It came to me in my extremity. But I am getting ahead of myself. Let me tell you the full story, from the beginning."',
+            choices: [
+                { text: 'Yes, tell me everything', next: 'abbess_full_story' }
+            ]
+        },
+        // Fase 5: VOLLEDIGE BACKSTORY - LINEAIR VERLOOP
+        abbess_full_story: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            music: 'audio/Come Play with Me.mp3',
+            character: 'The Pale Abbess',
+            text: '"I was Magistra Hildegard, head of a monastery famous for its library. We preserved knowledge—all knowledge. Texts the Church feared…"',
+            choices: [
+              { text: 'Continue', next: 'church_demands' }
+            ], 
+        },
+        church_demands: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"The Inquisition came. They demanded I burn my library—Gnostic gospels, Pagan treatises, Kabbalistic diagrams. My sisters turned against me."',
+            choices: [
+                { text: "What was in those forbidden books?", next: 'forbidden_library_detail' },
+                { text: "Why didn't you simply flee?", next: 'why_no_flight' },
+                { text: "Continue", next: 'hildegard_choice' }
+            ]
+        },
+        forbidden_library_detail: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Knowledge the Church feared: visions of a cosmos beyond their God, maps of the soul not drawn by priests. I believed truth, wherever found, led to the divine."',
+            choices: [{ text: "Continue", next: 'hildegard_choice' }]
+        },
+        why_no_flight: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Flight would have condemned me as a coward and my library to the flames. I chose instead to become the anchor—to make my body the foundation that could not be torn down."',
+            choices: [{ text: "Continue", next: 'hildegard_choice' }]
+        },
+        hildegard_choice: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"I made a choice. I would not flee. I would not recant. Instead, I offered myself as an anchorite—a living building sacrifice. I would be sealed into the monastery walls, my devotion anchoring the building against destruction. It was accepted. An honorable solution for all."',
+            choices: [
+                { text: 'They sealed you alive?', next: 'sealing_ceremony' }
+            ]
+        },
+        sealing_ceremony: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"The ceremony was beautiful. A funeral mass for my living body. They stripped me of my crozier and pectoral cross—symbols of earthly office I would no longer need. The Bishop blessed me: \'Vade in pacem\'—go in peace. Not \'go in peace\' but \'go in THE peace.\' The peace of the tomb."',
+            choices: [
+                { text: 'Continue', next: 'entering_cell' }
+            ]
+        },
+        entering_cell: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"I entered the cell willingly. It was small—three paces by three paces. A bucket. A stone bed. A small window for food. I spoke my vow: \'Haec requies mea in saeculum saeculi\'—This is my rest forever and ever. Then they began building the wall."',
+            choices: [
+                { text: 'They sealed you in', next: 'wall_building' }
+            ]
+        },
+        wall_building: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Stone by stone, blessed and consecrated. The monks sang psalms as the masons worked. The light grew dimmer with each stone. I watched the Bishop\'s face disappear behind the growing wall. His final words: \'Ancorata es, ut monasterium stet\'—You are anchored, that the monastery may stand. Then—darkness. Total. Absolute. Eternal."',
+            choices: [
+                { text: 'What happened in the darkness?', next: 'years_of_darkness' }
+            ]
+        },
+        years_of_darkness: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Years passed in total darkness—three, five, ten; I lost count. God remained silent. My mind frayed, my eyes whitened, my name sometimes slipped away. Yet I clung to one certainty: I was the anchor. Until the day I broke—screaming, clawing stone, begging for anything. And in that absolute extremity… something answered."',
+            choices: [
+              { text: "What answered?", next: 'box_appears' }
+            ]
+        },
+        no_answer: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"No. God was silent. My mind began to break. I forgot colors. I forgot faces. I forgot my own name some days. My eyes turned white from the darkness. But I held to one truth: I was the anchor. I had to endure."',
+            choices: [
+                { text: 'And then?', next: 'breaking_point' }
+            ]
+        },
+        breaking_point: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"I broke. Completely. I screamed. I raged. I clawed at the stones until my fingers bled. I begged for death, for release, for anything. And in my extremity, in my absolute desperation... something answered."',
+            choices: [
+                { text: 'What answered?', next: 'box_appears' }
+            ]
+        },
+        box_appears: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"The Configuration. It appeared in my cell—or perhaps it was always there, waiting for me to be ready. A puzzle box. In total darkness, by touch alone, I explored its surfaces. Geometric patterns, moving pieces. It became everything—my prayer, my meditation, my reason to continue."',
+            choices: [
+                { text: 'Did you solve it?', next: 'solving_box' }
+            ]
+        },
+        solving_box: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Months of work. My hands—once used for holding a crozier, for blessing the faithful—learned new geometries. Every piece clicked into place was a kind of prayer. When the final piece moved... reality opened."',
+            choices: [
+                { text: 'What happened?', next: 'cenobites_come' }
+            ]
+        },
+        cenobites_come: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Light—terrible, beautiful light—flooded my cell. The blessed wall I had anchored crumbled. They came through. Beings of chain and purpose. They looked upon me—wasted, blind, broken—and saw something worthy. They saw an anchor transformed."',
+            choices: [
+                { text: 'What did they do?', next: 'transformation_offer' }
+            ]
+        },
+        transformation_offer: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"They offered me completion. I had made myself an anchor—they would make me an anchor eternal. My devotion had strengthened stones—they would weave that strength into my very flesh. I had been stripped of my symbols of office—they would return them in new form."',
+            choices: [
+                { text: 'You accepted?', next: 'acceptance' }
+            ]
+        },
+        acceptance: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"What choice did I have? I was already dead—had been for years. My body was failing, my mind was broken. They offered purpose, power, and understanding. The Church had sealed me away to anchor a building. The Configuration freed me to anchor reality itself."',
+            choices: [
+                { text: 'What happened to your body?', next: 'physical_change' }
+            ]
+        },
+        physical_change: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"They perfected it. My wasted body became pale and strong. My blind eyes saw everything. And the chains—oh, the chains. They wove them into my flesh with such precision. Look closely. Do you see?"',
+            choices: [
+                { text: 'I see the patterns', next: 'symbols_explained' }
+            ]
+        },
+        symbols_explained: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"My right hand—chains curve from the palm, forming the shape of a crozier. The staff of an abbess, returned to me. My chest—chains pierce the flesh in a cross pattern. My pectoral cross, made eternal. They took nothing from me. They only transformed what I had offered."',
+            choices: [
+                { text: 'You became...', next: 'pale_abbess_name' }
+            ]
+        },
+        pale_abbess_name: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"The Pale Abbess. Pale from years without sun. Abbess still—for I lead, I teach, I guide. But no longer for God. I anchor this labyrinth as I once anchored that monastery. My sacrifice continues, transformed. And now, you stand in my domain."',
+            choices: [
+                { text: 'What do you want from me?', next: 'purpose_revealed' }
+            ]
+        },
+        purpose_revealed: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            music: 'audio/SCP-x2x (Unseen Presence).mp3',
+            character: 'The Pale Abbess',
+            text: '"I offer what was offered to me—transformation through trial. I anchored myself through devotion and suffering. You can anchor yourself through understanding and will. Face the trials, and choose your form. Refuse, and be transformed according to our design. The choice, unlike mine, is yours."',
+            choices: [
+                { text: 'Tell me about these trials', next: 'trials_explanation' },
+                { text: 'I refuse all of this', next: 'refusal_response' },
+                { text: 'I need time to think', next: 'contemplation_offer' }
+            ]
+        },
+        // Fase 6: TRIALS EN ENDINGS
+        // === TRIAL EXPLANATION & SETUP ===
+        trials_explanation: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Three trials, as I endured three years before I broke. First: Sensation—to open your perception beyond pain and pleasure. Second: Will—to prove your strength of self. Third: Understanding—to demonstrate true enlightenment. Complete them, and you choose your form. Fail, and you become what we decide."',
+            choices: [
+                { text: 'I accept the trials', next: 'trial_acceptance' },
+                { text: 'What if I refuse?', next: 'refusal_response' }
+            ]
+        },
+        refusal_response: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Refuse? I could not refuse my fate—I chose it willingly. You opened the box—that choice is made. But refusing the trials means transformation without understanding, without dignity. You become a tool, not an artist. Is that truly what you want?"',
+            choices: [
+                { text: 'No, I will face the trials', next: 'trial_acceptance' },
+                { text: 'Yes, I refuse everything', next: 'absolute_refusal' },
+                { text: 'Let me think about this', next: 'contemplation_offer' }
+            ]
+        },
+        contemplation_offer: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Think? I had years to think in my cell. But very well. Wander the labyrinth. See what others have become—those who chose, those who refused, those who failed. When you are ready, call for me. I will come."',
+            choices: [
+                { text: 'Explore the labyrinth', next: 'labyrinth_wander' },
+                { text: 'I am ready now', next: 'trial_acceptance' }
+            ]
+        },
+        labyrinth_wander: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'Narrator',
+            text: 'You wander through corridors that shift between monastery and labyrinth. You see cells like the one that held Hildegard. You find others—transformed, serving, suffering, transcended. Each tells a story of choice or its absence. Understanding grows.',
+            choices: [
+                { text: 'Call for the Pale Abbess', next: 'ready_for_trials' },
+                { text: 'Continue exploring', next: 'deeper_labyrinth' }
+            ]
+        },
+        deeper_labyrinth: {
+            mediaSequence: [
+              { type: 'image', 
+              src: 'image/DEFAULT_The_Box.png', 
+              duration: null, staticNoise: null }
+            ],
+            character: 'Narrator',
+            text: "Deeper in, you find a chamber of broken forms—figures half-transformed, frozen mid-scream or mid-ecstasy. One, still aware, whispers: \"She was like us once… before the box.\" Their stories echo the Abbess’s own. You understand more.",
+            choices: [{ text: "Seek the Pale Abbess", next: 'ready_for_trials' }]
+        },
+        ready_for_trials: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"You called. You wandered, you learned, and now you understand what awaits. Good. Understanding before transformation, not after. You have shown wisdom. Now show me strength."',
+            choices: [
+                { text: 'Begin the trials', next: 'trial_acceptance' }
+            ]
+        },
+        absolute_refusal: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Absolute refusal. I respect it—I resisted too, at first, in my cell. Screaming, clawing at stones. But resistance has limits. You will break eventually... or you will not, and become something unique in your eternal defiance. Either outcome interests me."',
+            choices: [
+                { text: 'I will never break', next: 'resistance_journey' },
+                { text: 'Perhaps I should reconsider', next: 'trial_acceptance' }
+            ]
+        },
+        trial_acceptance: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Wise choice. You choose understanding over ignorance, dignity over subjugation. The first trial awaits—the Trial of Sensation. I anchored myself through years of deprivation. You will learn through experience. Come."',
+            choices: [
+                { text: 'Face the first trial', next: 'trial_one' }
+            ]
+        },
+        // === TRIAL ONE: SENSATION ===
+        trial_one: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            music: 'audio/SCP-x2x (Unseen Presence).mp3',
+            character: 'Narrator',
+            text: 'The Trial of Sensation begins. Chains extend from walls like the ones woven into her flesh. They touch you—neither hot nor cold, neither rough nor smooth. The sensation is beyond description. Pain and pleasure merge, become one, transcend both. You understand: sensation is truth beyond morality.',
+            choices: [
+                { text: 'Embrace the sensation', next: 'embrace_sensation' },
+                { text: 'Fight against it', next: 'resist_sensation' }
+            ]
+        },
+        embrace_sensation: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Excellent. You do not fight what is inevitable. You accept sensation for what it is—pure experience, beyond judgment. In my cell, I learned this through starvation, through isolation. You learn it through direct communion. You have passed the first trial."',
+            choices: [
+                { text: 'Continue to the second trial', next: 'trial_two' }
+            ]
+        },
+        resist_sensation: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'Narrator',
+            text: "You fight the merging of pain and pleasure, clinging to old certainties. The chains tighten, the sensations intensify. Yet a whisper remains: surrender might not be defeat—it might be understanding.",
+            choices: [
+                { text: "Surrender now and let go", next: 'surrender_sensation' },
+                { text: "Keep resisting", next: 'keep_resisting' }
+            ]
+        },
+        surrender_sensation: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"There. Finally you release your grip on old certainties. It took me months in darkness to reach this understanding. You achieved it in moments. Good. You have passed the first trial, though with hesitation."',
+            choices: [
+                { text: 'Continue to the second trial', next: 'trial_two' }
+            ]
+        },
+        keep_resisting: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"You failed. Resistance without understanding—exactly what I feared. In my cell, I resisted for years before I learned. You had moments and chose ignorance. You will transform, but without dignity, without choice in your form."',
+            choices: [
+                { text: 'Accept this fate', next: 'forced_transformation' }
+            ]
+        },
+        // === TRIAL TWO: WILL ===
+        trial_two: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"The Trial of Will. I maintained my identity through years of isolation by sheer force of will—even when I forgot my name, I remembered I was an anchor. Now you must choose: hold to your core self, or release it and become something new. Both paths have merit."',
+            choices: [
+                { text: 'Hold onto who I am', next: 'hold_identity' },
+                { text: 'Let myself change', next: 'embrace_change' }
+            ]
+        },
+        hold_identity: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'Narrator',
+            text: 'The labyrinth shows you other versions of yourself—what you could become, what you might have been. But you hold firm to your core. Like the Pale Abbess who remembered she was Magistra even when she forgot her name. Your will is iron.',
+            choices: [
+                { text: 'Face the final trial', next: 'trial_three' }
+            ]
+        },
+        embrace_change: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'Narrator',
+            text: 'You release your grip on who you were, allowing transformation to flow through you. Like the Pale Abbess who became something new in her darkness—from Magistra to Anchor to Abbess. Identity becomes fluid. You pass through acceptance of change.',
+            choices: [
+                { text: 'Face the final trial', next: 'trial_three' }
+            ]
+        },
+        // === TRIAL THREE: UNDERSTANDING ===
+        trial_three: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_walking.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            music: 'audio/SCP-x2x (Unseen Presence).mp3',
+            character: 'The Pale Abbess',
+            text: '"The final trial: Understanding. Was I victim or volunteer? Martyr or fool? Punished or blessed? Tell me—what is transformation truly?"',
+            choices: [
+                { text: 'Transformation is suffering made eternal', next: 'see_suffering' },
+                { text: 'Transformation is transcendence of the flesh', next: 'see_transcendence' },
+                { text: 'Transformation is both—suffering and transcendence as one truth', next: 'see_both' }
+            ]
+        },
+        see_suffering: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"You see clearly the price—the suffering that forged me. That recognition alone makes you more valuable than most who pass through here. You pass the trials, though full enlightenment eludes you. Come, I will mark you for your purpose."',
+            choices: [{ text: "Accept the mark", next: 'herald_transformation' }]
+        },
+        see_transcendence: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"You grasp the glory, the ascension beyond flesh, yet turn from the cost. A partial truth, but still a truth. You will join us, though you walk a longer path to understanding. Come—accept your chains."',
+            choices: [{ text: "Step forward", next: 'lesser_transformation' }]
+        },
+        see_both: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Yes. YES! You see it—suffering and transcendence as inseparable, two faces of one truth. What I learned through years sealed in stone, you have grasped through the trials. You are worthy. Now—choose your configuration."',
+            choices: [
+                { text: 'Choose your transformation', next: 'true_transformation' }
+            ]
+        },
+        // === RESISTANCE PATH ===
+        resistance_journey: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            music: 'audio/Final Count.mp3',
+            character: 'Narrator',
+            text: 'You resist. Days blur into weeks, weeks into months. The Pale Abbess watches with fascination—you remind her of herself in the early days of her enclosure, refusing to accept her fate. Your resistance becomes legendary among the transformed. You are the one who will not break.',
+            choices: [
+                { text: 'Continue resisting forever', next: 'never_break' },
+                { text: 'Finally, ask for the trials', next: 'break_eventually' }
+            ]
+        },
+        never_break: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"Remarkable. You truly will not break. Like I would not break from my devotion, you will not break from your refusal. I see now what you are—what you have chosen to become. Come, let me show you your place."',
+            choices: [
+                { text: 'Follow her', next: 'chains_descend' }
+            ]
+        },
+        chains_descend: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Fase3/walking_through_labyrinth.mp4',
+                    staticNoise: 'scan'
+                },
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: 'high'
+                },
+            ],
+            ambientAudio: {
+                loop: { src: 'audio/chains_rattling.m4a', volume: 0.8, delay: 0 }
+            },
+            music: 'audio/Final Count.mp3',
+            character: 'Narrator',
+            text: 'She leads you to a vast chamber—the heart of the labyrinth. Above, chains hang from impossible heights like the roots of an inverted tree. The Pale Abbess gestures, and they descend slowly, reverently. They wrap around your wrists, your ankles, your torso—not to torment, but to preserve. You are lifted, suspended between floor and ceiling. The chains are cold against your skin, yet you do not struggle. This is your choice made manifest.',
+            choices: [
+                { text: 'Hang defiant in eternal resistance', next: 'eternal_resistance_ending' }
+            ]
+        },
+        break_eventually: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_head.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'The Pale Abbess',
+            text: '"At last. Your resistance proved your will—just as mine was proven in that cell. You have already passed the first trial through your suffering, and the second through your endurance. Now only understanding remains. Come."',
+            choices: [
+                { text: 'Face the final trial', next: 'trial_three' }
+            ]
+        },
+        // === FORCED TRANSFORMATION ===
+        lesser_transformation: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Fase3/walking_through_labyrinth.mp4',
+                    staticNoise: 'high'
+                },
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: 'scan'
+                },
+            ],
+            ambientAudio: {
+                loop: { src: 'audio/chains_rattling.m4a', volume: 0.5, delay: 0 }
+            },
+            music: 'audio/This House.mp3',
+            character: 'Narrator',
+            text: 'The transformation begins. Chains emerge—not from within like the Pale Abbess, but woven around you from without. They bind and pierce, configure and reshape. Pain and pleasure merge as your flesh learns new geometries. You scream, you laugh, you transcend. When it ends, you stand changed—a Cenobite, but marked as one still learning. The Pale Abbess nods approvingly. "In time, you may understand what I know. Until then, you serve."',
+            choices: [
+                { text: 'Take your place among them', next: 'lesser_cenobite_ending' }
+            ]
+        },
+        herald_transformation: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: 'medium'
+                },
+            ],
+            ambientAudio: {
+                once: { src: 'audio/chains_rattling.m4a', volume: 0.3, delay: 0 }
+            },
+            music: 'audio/SCP-x2x (Unseen Presence).mp3',
+            character: 'Narrator',
+            text: 'A single chain extends from her hand—gentle, almost tender. It touches your forehead, your chest, leaving invisible marks that burn with cold fire. You feel the knowledge settle into you: where the boxes lie hidden, who seeks them, how to guide the curious toward their fate. The transformation is subtle—you will appear human, unchanged. But you will know. You will always know.',
+            choices: [
+                { text: 'Return to the world', next: 'herald_ending' }
+            ]
+        },
+        forced_transformation: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            character: 'Narrator',
+            text: 'Without understanding, without dignity, you are simply taken. Chains pierce flesh according to their will, not yours. You transform, but you will never comprehend why or what you have become. A tool of the Configuration, nothing more. Forever serving without purpose.',
+            choices: [
+                { text: 'Exist as a servant', next: 'servant_ending' }
+            ]
+        },
+        true_transformation: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Luna/solve_puzzle/portal_opens.mp4',
+                    staticNoise: 'high'
+                },
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            ambientAudio: {
+                loop: { src: 'audio/chains_rattling.m4a', volume: 0.6, delay: 0 }
+            },
+            music: 'audio/SCP-x2x (Unseen Presence).mp3',
+            character: 'Narrator',
+            text: 'The Pale Abbess extends both hands. Chains flow from her palms like liquid metal, seeking you. But these do not bind—they ask permission. You nod, and they enter your flesh, weaving from within as hers do. The pain is exquisite, the pleasure unbearable—both are irrelevant before the understanding that floods through you. You feel the labyrinth, the Configuration, the eternal geometry. The chains form patterns unique to you—your own symbols of office, your own truth made manifest.',
+            choices: [
+                { text: 'Behold what you have become', next: 'true_cenobite_ending' }
+            ]
+        },
+        // === ALL ENDINGS ===
+        servant_ending: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            music: 'audio/Final Count.mp3',
+            character: 'Narrator',
+            text: 'You become a servant—maintaining corridors, preparing chambers for trials, assisting in transformations you do not understand. Neither human nor Cenobite, you exist between states without purpose. Sometimes the Pale Abbess passes, and you remember you could have chosen differently. But that time is past. You anchor nothing. You are nothing.',
+            isEnding: true,
+            choices: [
+                { text: 'Start Over', next: 'start' }
+            ]
+        },
+        herald_ending: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/antique_shop.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            music: 'audio/Day of Chaos.mp3',
+            character: 'Narrator',
+            text: 'You return to the mortal world, appearing human but forever changed. Like the Pale Abbess who was transformed by her voluntary sacrifice, you were transformed by your trials. Now you guide others to the Configuration. You know where the boxes lie. You know who seeks them. You are the herald—the one who brings others to their anchoring. The cycle continues, and you are its messenger.',
+            isEnding: true,
+            choices: [
+                { text: 'Start Over', next: 'start' }
+            ]
+        },
+        lesser_cenobite_ending: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Ailuna&Tjuzi_hallway.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            music: 'audio/Final Count.mp3',
+            character: 'Narrator',
+            text: 'You transform, joining the ranks of the Cenobites. Not equal to the Pale Abbess—you lack her complete understanding—but still an explorer of sensation and reality. You will learn through eternity what she learned through her years sealed in stone. When the box opens, you will answer the call. You are anchored to the Configuration now, forever seeking the understanding that eluded you in the trials.',
+            isEnding: true,
+            choices: [
+                { text: 'Start Over', next: 'start' }
+            ]
+        },
+        true_cenobite_ending: {
+            mediaSequence: [
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_speak1.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'video',
+                    src: 'video/Pale_Abbess_wait_loop.mp4',
+                    staticNoise: null
+                },
+                { 
+                    type: 'image',
+                    src: 'image/The_Pale_Abbess_full.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            music: 'audio/SCP-x2x (Unseen Presence).mp3',
+            character: 'The Pale Abbess',
+            text: '"Behold your transformation." You stand changed, chains woven into your flesh in patterns unique to you—your own symbols of office, as hers are unique to her devotion. You understand now: suffering and transcendence, anchor and ascension, sacrifice and power—all one truth. Together you will guide new seekers through their transformations. Two who understood the Configuration completely. The labyrinth has found worthy anchors.',
+            isEnding: true,
+            choices: [
+                { text: 'Start Over', next: 'start' }
+            ]
+        },
+        eternal_resistance_ending: {
+            mediaSequence: [
+                { 
+                    type: 'image',
+                    src: 'image/DEFAULT_The_Box.png',
+                    duration: null,
+                    staticNoise: null
+                },
+            ],
+            music: 'audio/Final Count.mp3',
+            character: 'Narrator',
+            text: 'Your resistance becomes eternal—suspended in chains yet unbowed. The Pale Abbess keeps you as a living monument, a reminder of her own years of resistance in that sealed cell. Your defiance becomes art, your will becomes legend. You exist forever at the threshold, never breaking, never transforming, never surrendering. An anchor of a different kind—anchored to your own absolute refusal. In this, you have achieved a strange transcendence.',
+            isEnding: true,
+            choices: [
+                { text: 'Start Over', next: 'start' }
+            ]
+        }
+
+};
+
+
+        /* =========================================================
+           DOM REFERENCES
+           ========================================================= */
+        const bgImage = document.getElementById('background-image');
+        const bgVideo = document.getElementById('background-video');
+        const staticNoise = document.getElementById('static-noise');
+        const glitchOverlay = document.getElementById('glitch-overlay');
+        const charName = document.getElementById('character-name');
+        const dialogue = document.getElementById('dialogue');
+        const choicesDiv = document.getElementById('choices');
+        const titleScreen = document.getElementById('title-screen');
+        const startBtn = document.getElementById('start-btn');
+        const bgMusic = document.getElementById('background-music');
+        const ambientLoop = document.getElementById('ambient-loop');
+        const ambientOnce = document.getElementById('ambient-once');
+        const muteBtn = document.getElementById('mute-btn');
+        const creditsScreen = document.getElementById('credits-screen');
+        const creditsContent = document.getElementById('credits-content');
+        const textBox = document.getElementById('text-box');
+        const viewCreditsBtn = document.getElementById('view-credits-btn');
+
+        /* ==============
+           START GAME
+           ======================== */
+        startBtn.onclick = () => {
+            titleScreen.classList.add('hidden');
+            loadScene('start');
+        };
+
+        /* ==============
+           CREDITS SCREEN
+           ====================== */
+        viewCreditsBtn.addEventListener('click', () => {
+            showCredits();
+        });
+
+        function showCredits() {
+            creditsScreen.classList.add('show');
+            textBox.style.display = 'none';
+            creditsContent.classList.add('scrolling');
+
+            setTimeout(() => {
+                creditsScreen.classList.remove('show');
+                titleScreen.classList.remove('hidden');
+                textBox.style.display = 'flex';
+                creditsContent.classList.remove('scrolling');
+            }, 30000);
+        }
+
+        /* =============
+           AUDIO CONTROLS
+           ===================== */
+        let isMuted = false;
+        let activeOnceAudios = [];
+        let activeLoopAudios = [];
+        let pendingAudioTimers = [];
+
+        muteBtn.onclick = () => {
+            isMuted = !isMuted;
+            [bgMusic, ambientLoop, ambientOnce, bgVideo].forEach(a => a.muted = isMuted);
+            activeOnceAudios.forEach(a => a.muted = isMuted);
+            activeLoopAudios.forEach(a => a.muted = isMuted);
+            muteBtn.textContent = isMuted ? '🔇' : '🔊';
+        };
+
+        /* ===============
+        AMBIENT AUDIO
+        ========================== */
+        function playAmbientAudio(config) {
+            // Clear alle pending timers
+            pendingAudioTimers.forEach(timer => clearTimeout(timer));
+            pendingAudioTimers = [];
+
+            // Stop alle bestaande audio
+            ambientLoop.pause();
+            ambientLoop.src='';
+            ambientLoop.load(); // Reset de audio element
+            
+            ambientOnce.pause();
+            ambientOnce.src='';
+            ambientOnce.load();
+
+            // Stop alle once audios
+            activeOnceAudios.forEach(a => {
+                a.pause();
+                a.src = '';
+            });
+            activeOnceAudios = [];
+            
+            // Stop alle loop audios
+            activeLoopAudios.forEach(a => {
+                a.pause();
+                a.src = '';
+            });
+            activeLoopAudios = [];
+
+            if (!config) return;
+
+            // ONCE AMBIENTS (array support)
+            if (Array.isArray(config.once)) {
+                config.once.forEach(entry => {
+                    if (!entry?.src) return;
+                    const playAudio = () => {
+                        const a = new Audio(entry.src);
+                        a.volume = entry.volume ?? 0.5;
+                        a.muted = isMuted;
+                        a.loop = false;
+                        a.play().catch(() => {});
+                        activeOnceAudios.push(a);
+                        // Verwijder uit array wanneer klaar
+                        a.onended = () => {
+                            const index = activeOnceAudios.indexOf(a);
+                            if (index > -1) {
+                                activeOnceAudios.splice(index, 1);
+                            }
+                        };
+                    };
+                    if (entry.delay) {
+                        const timer = setTimeout(playAudio, entry.delay); // Sla timer op
+                        pendingAudioTimers.push(timer);
+                    } else {
+                        playAudio();
+                    }
+                });
+            } else if (config.once?.src) {
+                // Backwards compatible: enkele once audio
+                const playAudio = () => {
+                    ambientOnce.src = config.once.src;
+                    ambientOnce.volume = config.once.volume ?? 0.5;
+                    ambientOnce.muted = isMuted;
+                    ambientOnce.loop = false;
+                    ambientOnce.play().catch(() => {});
+                };
+                if (config.once.delay) {
+                    const timer = setTimeout(playAudio, config.once.delay); //  Sla timer op
+                    pendingAudioTimers.push(timer);
+                } else {
+                    playAudio();
+                }
+            }
+
+            // LOOP AMBIENT (met array support!)
+            if (Array.isArray(config.loop)) {
+                config.loop.forEach(entry => {
+                    if (!entry?.src) return;
+
+                    const timer = setTimeout(() => { // Sla timer op
+                        const a = new Audio(entry.src);
+                        a.volume = entry.volume ?? 0.5;
+                        a.muted = isMuted;
+                        a.loop = true;
+                        a.play().catch(() => {});
+                        activeLoopAudios.push(a);
+                    }, entry.delay ?? 0);
+                    pendingAudioTimers.push(timer);
+                });
+            } else if (config.loop?.src) {
+                const timer = setTimeout(() => { // Sla timer op
+                    ambientLoop.src = config.loop.src;
+                    ambientLoop.volume = config.loop.volume ?? 0.5;
+                    ambientLoop.muted = isMuted;
+                    ambientLoop.loop = true;
+                    ambientLoop.play().catch(() => {});
+                }, config.loop.delay ?? 0);
+                pendingAudioTimers.push(timer);
+            }
+        }
+
+        /* ===============
+           STATIC NOISE CONTROL
+           =========================== */
+        function setStaticNoise(type) {
+            // Reset alle classes
+            staticNoise.classList.remove('active', 'light', 'medium', 'heavy', 'scan');
+            
+            if (type && ['light', 'medium', 'heavy', 'scan'].includes(type)) {
+                staticNoise.classList.add('active', type);
+                console.log('Static noise activated:', type);
+            } else {
+                console.log('Static noise disabled');
+            }
+        }
+
+        /* ===============
+           SCENE LOADER
+           =========================== */
+        let currentScene = null; // Houd huidige scene bij
+
+        function loadScene(id) {
+            const scene = story[id];
+            if (!scene) {
+                console.error('Scene not found:', id);
+                return;
+            }
+
+            // Sla scene op
+            currentScene = scene;
+
+            // Stop oude audios
+            activeOnceAudios.forEach(a => {
+                a.pause();
+                a.src = '';
+            });
+            activeOnceAudios = [];
+
+            activeLoopAudios.forEach(a => {
+                a.pause();
+                a.src = '';
+            });
+            activeLoopAudios = [];
+
+            ambientLoop.pause();
+            ambientLoop.src = '';
+            ambientOnce.pause();
+            ambientOnce.src = '';
+
+            // Music
+            if (scene.music) {
+                bgMusic.src = scene.music;
+                bgMusic.muted = isMuted;
+                bgMusic.play().catch(()=>{});
+            }
+
+            // Ambient
+            playAmbientAudio(scene.ambientAudio);
+
+            // Media - COMPLETE RESET
+            bgVideo.classList.remove('active');
+            bgVideo.pause();
+            bgVideo.src = '';
+            bgVideo.load();
+            bgImage.classList.add('hidden');
+            bgImage.src = '';
+            setStaticNoise(null); // Reset static noise
+
+            // Media sequence
+            if (scene.mediaSequence) {
+                playMediaSequence(scene.mediaSequence, 0);
+            }
+
+            // Text
+            charName.textContent = scene.character || '';
+            dialogue.textContent = scene.text || '';
+
+            // Choices
+            choicesDiv.innerHTML = '';
+            scene.choices?.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = c.text;
+                btn.onclick = () => loadScene(c.next);
+                choicesDiv.appendChild(btn);
+            });
+
+            // Credits button
+            if (scene.isEnding) {
+                viewCreditsBtn.classList.remove('hidden');
+            } else {
+                viewCreditsBtn.classList.add('hidden');
+            }
+        }
+
+        /* ========
+           MEDIA SEQUENCE (PHOTOS + VIDEOS COMBINED)
+           ========================= */
+        function playMediaSequence(sequence, index = 0) {
+            const isLast = index === sequence.length - 1;
+            const media = sequence[index];
+            
+            console.log('Playing media', index + 1, 'of', sequence.length, '- type:', media.type);
+
+            if (media.type === 'image') {
+                // FOTO
+                console.log('Image:', media.src, '- duration:', media.duration, 'ms - noise:', media.staticNoise);
+                
+                // Verberg video, toon foto
+                bgVideo.classList.remove('active');
+                bgVideo.pause();
+                
+                // Glitch effect bij transitie (maar niet bij eerste item)
+                if (index > 0) {
+                    glitchOverlay.classList.add('glitching');
+                    setTimeout(() => {
+                        glitchOverlay.classList.remove('glitching');
+                        // Update image NA glitch
+                        bgImage.src = media.src;
+                        bgImage.classList.remove('hidden');
+                        setStaticNoise(media.staticNoise);
+                    }, 300);
+                } else {
+                    // Eerste item: direct tonen zonder glitch
+                    bgImage.src = media.src;
+                    bgImage.classList.remove('hidden');
+                    setStaticNoise(media.staticNoise);
+                }
+
+                // Als duration null is, blijft de foto staan (geen auto-advance)
+                // Anders ga naar volgende na duration
+                if (media.duration !== null && !isLast) {
+                    setTimeout(() => {
+                        console.log('Image duration ended, moving to next media');
+                        playMediaSequence(sequence, index + 1);
+                    }, media.duration);
+                } else if (media.duration !== null && isLast) {
+                    // Laatste item met duration - toon voor die duration en blijf staan
+                    setTimeout(() => {
+                        console.log('Last media duration ended, staying on final image');
+                    }, media.duration);
+                }
+                // Als duration null is (laatste image), blijft het gewoon staan
+
+            } else if (media.type === 'video') {
+                // VIDEO
+                console.log('Video:', media.src, '- noise:', media.staticNoise);
+                
+                // Verberg foto, toon video
+                bgImage.classList.add('hidden');
+                
+                let videoStarted = false;
+
+                // Setup video
+                bgVideo.pause();
+                bgVideo.removeAttribute('src');
+                bgVideo.load();
+                bgVideo.src = media.src;
+                bgVideo.loop = isLast;  // Laatste video loopt, andere niet
+                bgVideo.muted = isMuted;
+
+                // Activeer noise tijdens video (optioneel)
+                setStaticNoise(media.staticNoise);
+
+                // Error handler
+                bgVideo.onerror = (e) => {
+                    console.error('Video error:', e);
+                };
+
+                // Play video
+                bgVideo.load();
+                bgVideo.classList.add('active');
+                
+                const playPromise = bgVideo.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        videoStarted = true;
+                        console.log('✅ Video playing successfully');
+                    }).catch((error) => {
+                        console.error('❌ Play promise rejected:', error);
+                    });
+                }
+
+                bgVideo.onplaying = () => {
+                    videoStarted = true;
+                    console.log('✅ Video onplaying event fired');
+                };
+
+                // Glitch effect bij start
+                if (index > 0) {
+                    glitchOverlay.classList.add('glitching');
+                    setTimeout(() => {
+                        glitchOverlay.classList.remove('glitching');
+                    }, 300);
+                }
+
+                // Wanneer video eindigt
+                bgVideo.onended = () => {
+                    console.log('Video ended');
+                    
+                    if (!isLast) {
+                        // Ga naar volgende media
+                        glitchOverlay.classList.add('glitching');
+                        setTimeout(() => {
+                            glitchOverlay.classList.remove('glitching');
+                            playMediaSequence(sequence, index + 1);
+                        }, 400);
+                    } else {
+                        // Laatste video - video blijft zichtbaar op laatste frame
+                        console.log('Last video ended');
+                    }
+                };
+            }
+        }
+
+    </script>
+</body>
+</html>
